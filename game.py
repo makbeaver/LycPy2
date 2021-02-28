@@ -14,7 +14,7 @@ background = None
 
 # WIDTH = 1200
 # HEIGHT = 500
-FPS = 30
+FPS = 60
 # Сколько захватчиков
 ufos = 20
 # Сколько вакцины
@@ -33,8 +33,8 @@ pygame.init()
 WIDTH = pygame.display.Info().current_w
 HEIGHT = pygame.display.Info().current_h
 pygame.mixer.init()
-screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN | pygame.DOUBLEBUF)
-pygame.display.set_caption("[Название игры]")
+screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.DOUBLEBUF | pygame.DOUBLEBUF)
+pygame.display.set_caption("CoronaBattle 2021")
 pygame.display.set_icon(pygame.image.load(path.join(img_dir, "main.png")))
 clock = pygame.time.Clock()
 
@@ -300,7 +300,7 @@ def start_screen():
     background_rect1.x = 0
     background_rect2.x = WIDTH + 1
     screen.blit(background1, background_rect1)
-    draw_text(screen, font_platypus, "[CoronaBattle2021]", WIDTH / 2, HEIGHT / 4 - 80)
+    draw_text(screen, font_platypus, "CoronaBattle2021", WIDTH / 2, HEIGHT / 4 - 80)
     draw_text(screen, font_text, f'Лучший результат {best_score}',
               WIDTH / 2, HEIGHT / 4 + 50)
     draw_text(screen, font_text, "Стрелками двигай пробелом стреляй",
