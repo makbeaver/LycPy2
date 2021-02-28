@@ -6,6 +6,7 @@ from os import path
 img_dir = path.join(path.dirname(__file__), 'data/img')
 snd_dir = path.join(path.dirname(__file__), 'data/snd')
 explode_dir = path.join(path.dirname(__file__), 'data/explodes')
+aura_dir = path.join(path.dirname(__file__), 'data/aura')
 
 background = None
 
@@ -16,6 +17,8 @@ background = None
 FPS = 30
 # Сколько захватчиков
 ufos = 20
+# Сколько вакцины
+vacs = 2
 
 # Задаем цвета
 WHITE = (255, 255, 255)
@@ -30,7 +33,7 @@ pygame.init()
 WIDTH = pygame.display.Info().current_w
 HEIGHT = pygame.display.Info().current_h
 pygame.mixer.init()
-screen = pygame.display.set_mode((WIDTH, HEIGHT),pygame.FULLSCREEN | pygame.DOUBLEBUF)
+screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN | pygame.DOUBLEBUF)
 pygame.display.set_caption("[Название игры]")
 pygame.display.set_icon(pygame.image.load(path.join(img_dir, "main.png")))
 clock = pygame.time.Clock()
@@ -40,6 +43,7 @@ font_platypus = pygame.font.Font(
     path.join(path.dirname(__file__), 'data/game_font.ttf'), 90)
 font_text = pygame.font.Font(path.join(path.dirname(__file__), 'data/pl_font.ttf'), 40)
 font_text18 = pygame.font.Font(path.join(path.dirname(__file__), 'data/pl_font.ttf'), 18)
+
 
 def draw_text(surf, font, text, x, y):
     # font = pygame.font.Font(font_name, size)
@@ -124,7 +128,6 @@ class Mob(pygame.sprite.Sprite):
                 self.dy *= -1
             self.rect.y += self.vy
             if time.time() - self.tick > 2:
-                self.shoot()
                 self.tick = time.time()
         else:
             self.rect.y += self.speedy
@@ -134,11 +137,45 @@ class Mob(pygame.sprite.Sprite):
             self.rect.y = random.randrange(HEIGHT - self.rect.height)
             self.speedx = random.randrange(-12, -1)
 
-    def shoot(self):
-        mob_shot = Mob_shot(self.rect.left, self.rect.centery)
-        all_sprites.add(mob_shot)
-        mob_shots.add(mob_shot)
-        # shot.play()
+
+class Vac(pygame.sprite.Sprite):
+    def __init__(self):
+        pygame.sprite.Sprite.__init__(self)
+        im = random.randint(1, 13)
+        self.image_orig = vac_images[im - 1]
+        self.image_orig.set_colorkey(-1)
+        self.image = self.image_orig.copy()
+        self.rect = self.image.get_rect()
+        self.radius = int(self.rect.width * .85 / 2)
+        if im in [1, 4, 9, 10]:
+            self.type = 1
+        else:
+            self.type = 2
+        self.rect.x = WIDTH + 150
+        self.speedy = random.randrange(-1, 1)
+        self.dy = 1
+        self.vy = 0
+        self.rect.y = random.randrange(HEIGHT - self.rect.height)
+        self.speedx = random.randrange(-12, -1)
+        self.last_update = pygame.time.get_ticks()
+        self.tick = time.time()
+
+    def update(self):
+        self.rect.x += self.speedx
+        if self.type == 1:
+            self.vy += self.dy
+            if self.vy > 10 or self.vy < -10:
+                self.dy *= -1
+            self.rect.y += self.vy
+            if time.time() - self.tick > 2:
+                self.tick = time.time()
+        else:
+            self.rect.y += self.speedy
+
+        if self.rect.x < -10 or self.rect.y < -25 or self.rect.bottom > HEIGHT + 20:
+            self.rect.x = WIDTH + 150
+            self.rect.y = random.randrange(HEIGHT - self.rect.height)
+            self.speedx = random.randrange(-12, -1)
 
 
 class Bullet(pygame.sprite.Sprite):
@@ -200,6 +237,31 @@ class Explosion(pygame.sprite.Sprite):
                 self.rect.center = center
 
 
+class Aura(pygame.sprite.Sprite):
+    def __init__(self, center, size):
+        pygame.sprite.Sprite.__init__(self)
+        self.size = size
+        self.image = aura_anim[self.size][0]
+        self.rect = self.image.get_rect()
+        self.rect.center = center
+        self.frame = 0
+        self.last_update = pygame.time.get_ticks()
+        self.frame_rate = 50
+
+    def update(self):
+        now = pygame.time.get_ticks()
+        if now - self.last_update > self.frame_rate:
+            self.last_update = now
+            self.frame += 1
+            if self.frame == len(aura_anim[self.size]):
+                self.kill()
+            else:
+                center = self.rect.center
+                self.image = aura_anim[self.size][self.frame]
+                self.rect = self.image.get_rect()
+                self.rect.center = center
+
+
 def HP(surf, x, y, pct):
     if pct < 0:
         pct = 0
@@ -218,11 +280,18 @@ def newmob():
     mobs.add(m)
 
 
+def newvac():
+    v = Vac()
+    all_sprites.add(v)
+    vac.add(v)
+
+
 def scrollBackground():
     background_rect1.x -= 5
     background_rect2.x -= 5
     if background_rect1.right < 0:
         background_rect1.x = WIDTH
+
     if background_rect2.right < 0:
         background_rect2.x = WIDTH
 
@@ -231,7 +300,7 @@ def start_screen():
     background_rect1.x = 0
     background_rect2.x = WIDTH + 1
     screen.blit(background1, background_rect1)
-    draw_text(screen, font_platypus, "[Название ]", WIDTH / 2, HEIGHT / 4 - 80)
+    draw_text(screen, font_platypus, "[CoronaBattle2021]", WIDTH / 2, HEIGHT / 4 - 80)
     draw_text(screen, font_text, f'Лучший результат {best_score}',
               WIDTH / 2, HEIGHT / 4 + 50)
     draw_text(screen, font_text, "Стрелками двигай пробелом стреляй",
@@ -272,12 +341,16 @@ background_rect2.x = WIDTH + 1
 
 player_img = pygame.image.load(path.join(img_dir, "main.png")).convert()
 bullet_img = pygame.image.load(path.join(img_dir, "lazer.png")).convert()
-mob_shot_img = pygame.image.load(path.join(img_dir, "mob_shot.gif")).convert()
 # Захватчики
 ufo_images = []
 for i in range(1, 14):
     ufo_images.append(
         pygame.transform.scale(pygame.image.load(path.join(img_dir, 'ufo{}.png'.format(i))).convert(), (70, 50)))
+# Вакцина
+vac_images = []
+for j in range(1, 14):
+    vac_images.append(
+        pygame.transform.scale(pygame.image.load(path.join(img_dir, 'vac{}.png'.format(j))).convert(), (70, 50)))
 # Взрывы
 explosion_anim = {}
 explosion_anim['lg'] = []
@@ -290,24 +363,38 @@ for i in range(9):
     explosion_anim['lg'].append(img_lg)
     img_sm = pygame.transform.scale(img, (32, 32))
     explosion_anim['sm'].append(img_sm)
+# Аура
+aura_anim = {}
+aura_anim['lg'] = []
+aura_anim['sm'] = []
+for i in range(2):
+    filename = 'aura_shield{}.png'.format(i)
+    img = pygame.image.load(path.join(aura_dir, filename)).convert()
+    img.set_colorkey(BLACK)
+    img_lg = pygame.transform.scale(img, (75, 75))
+    aura_anim['lg'].append(img_lg)
+    img_sm = pygame.transform.scale(img, (32, 32))
+    aura_anim['sm'].append(img_sm)
 # Звуки
-shot = pygame.mixer.Sound(path.join(snd_dir, 'shot.wav'))
-explode = pygame.mixer.Sound(path.join(snd_dir, 'explode.wav'))
+shot = pygame.mixer.Sound(path.join(snd_dir, 'explode.wav'))
+explode = pygame.mixer.Sound(path.join(snd_dir, 'shot.wav'))
 explode_player = pygame.mixer.Sound(path.join(snd_dir, 'explode_player.wav'))
 
 pygame.mixer.music.load(path.join(snd_dir, 'fon_music.ogg'))
-pygame.mixer.music.set_volume(0.4)
-
 all_sprites = pygame.sprite.Group()
 mobs = pygame.sprite.Group()
+vac = pygame.sprite.Group()
 bullets = pygame.sprite.Group()
-mob_shots = pygame.sprite.Group()
 player = Player()
 all_sprites.add(player)
 for i in range(ufos):
     m = Mob()
     all_sprites.add(m)
     mobs.add(m)
+for j in range(vacs):
+    v = Vac()
+    all_sprites.add(v)
+    vac.add(v)
 
 score = 0
 ufo = 0
@@ -339,12 +426,14 @@ while running:
         game_over = False
         all_sprites = pygame.sprite.Group()
         mobs = pygame.sprite.Group()
+        vac = pygame.sprite.Group()
         bullets = pygame.sprite.Group()
-        # powerups = pygame.sprite.Group()
         player = Player()
         all_sprites.add(player)
         for i in range(ufos):
             newmob()
+        for j in range(vacs):
+            newvac()
         score = 0
         ufo = 0
     # Держим цикл на правильной скорости
@@ -372,9 +461,11 @@ while running:
         mobs.add(m)
         explode.play()
 
-    # Проверка, не ударил ли моб игрока
+    # Проверка, не ударил ли моб игрока + не взял ли игрок вакцину
     hits = pygame.sprite.spritecollide(
         player, mobs, False, pygame.sprite.collide_circle)
+    heals = pygame.sprite.spritecollide(
+        player, vac, False, pygame.sprite.collide_circle)
     for hit in hits:
         player.shield -= 20
         explode_player.play()
@@ -387,20 +478,14 @@ while running:
             game_over = True
             if score > best_score:
                 best_score = score
-
-    # Проверка, попал ли выстрел моба игрока
-    hits = pygame.sprite.spritecollide(
-        player, mob_shots, False, pygame.sprite.collide_circle)
-    for hit in hits:
-        player.shield -= 20
-        explode_player.play()
-        expl = Explosion(hit.rect.center, 'sm')
-        all_sprites.add(expl)
-        hit.kill()
-        if player.shield <= 0:
-            game_over = True
-            if score > best_score:
-                best_score = score
+    for hit in heals:
+        if player.shield < 100:
+            player.shield += 20
+            explode_player.play()
+            au = Aura(hit.rect.center, 'sm')
+            all_sprites.add(au)
+            hit.kill()
+            newvac()
 
     # Рендеринг
     screen.fill(BLACK)
@@ -409,7 +494,8 @@ while running:
     scrollBackground()
     all_sprites.draw(screen)
     draw_text(
-        screen, font_text18, f'Сбито захватчиков {ufo}, Счёт {str(score)}, Лучший результат {best_score}', WIDTH / 2, 10)
+        screen, font_text18, f'Сбито захватчиков {ufo}, Счёт {str(score)}, Лучший результат {best_score}', WIDTH / 2,
+        10)
 
     HP(screen, player.rect.x, player.rect.y + 45, player.shield)
     pygame.display.flip()
