@@ -14,7 +14,7 @@ background = None
 
 # WIDTH = 1200
 # HEIGHT = 500
-FPS = 60
+FPS = 30
 # Сколько захватчиков
 ufos = 20
 # Сколько вакцины
@@ -35,7 +35,7 @@ HEIGHT = pygame.display.Info().current_h
 pygame.mixer.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.DOUBLEBUF | pygame.DOUBLEBUF)
 pygame.display.set_caption("CoronaBattle 2021")
-pygame.display.set_icon(pygame.image.load(path.join(img_dir, "main.png")))
+pygame.display.set_icon(pygame.image.load(path.join(img_dir, "vaccine_korabl.png")))
 clock = pygame.time.Clock()
 
 # font_name = pygame.font.match_font('Sergoe')
